@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --nu-light: #7BC67B;
+    --nu-dark: #1ec054;
+    --nu-gold: #D4AF37;
+    --nu-bg: #F8FAF7;
+    --nu-sidebar: #155229;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--nu-bg);
+}
+
+/* Glassmorphism Card Premium */
+.card-custom {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(31, 122, 62, 0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-custom:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px 0 rgba(31, 122, 62, 0.1);
+}
+
+/* Sidebar Styling */
+.sidebar {
+    background: linear-gradient(180deg, var(--nu-sidebar) 0%, #0eb247 100%);
+    min-height: 100vh;
+    border-top-right-radius: 25px;
+    border-bottom-right-radius: 25px;
+    color: white;
+}
+
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.85);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.sidebar .nav-link:hover, .sidebar .nav-link.active {
+    background-color: rgba(28, 184, 28, 0.15);
+    color: var(--nu-gold) !important;
+    transform: translateX(6px);
+}
+
+/* Form Styling */
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 1.5px solid #E2E8F0;
+    padding: 10px 15px;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--nu-light);
+    box-shadow: 0 0 0 3px rgba(123, 198, 123, 0.25);
+}
+
+.border-gold {
+    border-left: 5px solid var(--nu-gold) !important;
+}
+
+.btn-success {
+    background-color: var(--nu-dark) !important;
+    border-color: var(--nu-dark) !important;
+}
+
+.btn-success:hover {
+    background-color: #16562b !important;
+    border-color: #16562b !important;
+}
