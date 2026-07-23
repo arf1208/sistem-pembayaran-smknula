@@ -42,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="icon" type="image/png" href="https://www.image2url.com/r2/default/files/1784819261898-a905cc35-0f9b-420f-89fe-258648fa72b4.png">
 </head>
 <body class="d-flex flex-column justify-content-between" style="min-height: 100vh; background: linear-gradient(135deg, #113527 0%, #071912 100%);">
 
