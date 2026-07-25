@@ -33,9 +33,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tambah_siswa'])) {
     }
 }
 
-// 2. AMBIL DATA SISWA UNTUK DITAMPILKAN DI TABEL
+// 2. AMBIL DATA SISWA DENGAN FITUR PENCARIAN
+$keyword_cari = trim($_GET['cari'] ?? '');
+
 try {
-    $stmt = $pdo->query("SELECT * FROM siswa ORDER BY kelas ASC, nama_lengkap ASC");
+    if (!empty($keyword_cari)) {
+        $stmt = $pdo->prepare("SELECT * FROM siswa WHERE nis LIKE ? OR nama_lengkap LIKE ? ORDER BY kelas ASC, nama_lengkap ASC");
+        $stmt->execute(["%$keyword_cari%", "%$keyword_cari%"]);
+    } else {
+        $stmt = $pdo->query("SELECT * FROM siswa ORDER BY kelas ASC, nama_lengkap ASC");
+    }
     $daftar_siswa = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $daftar_siswa = [];
@@ -52,7 +59,7 @@ try {
     </div>
 
     <?php if (!empty($pesan_error)): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="image_8e19f1">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="fa-solid fa-circle-exclamation me-2"></i><?= htmlspecialchars($pesan_error); ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -62,10 +69,45 @@ try {
         <div class="alert alert-danger">Error Database: <?= htmlspecialchars($db_error); ?></div>
     <?php endif; ?>
 
+    <!-- CARD TABEL & FORM PENCARIAN + FILTER KELAS -->
     <div class="card shadow-sm border-0" style="border-radius: 15px;">
+        <div class="card-header bg-white py-3">
+            <div class="row g-2 align-items-center justify-content-between">
+                <!-- Form Pencarian Bawaan -->
+                <div class="col-md-5">
+                    <form action="" method="GET" class="input-group">
+                        <input type="hidden" name="page" value="siswa">
+                        <input type="text" name="cari" class="form-control form-control-sm" placeholder="Cari NIS atau Nama Siswa..." value="<?= htmlspecialchars($keyword_cari); ?>">
+                        <button type="submit" class="btn btn-success btn-sm fw-bold px-3">
+                            <i class="fa-solid fa-search"></i> Cari
+                        </button>
+                        <?php if (!empty($keyword_cari)): ?>
+                            <a href="dashboard.php?page=siswa" class="btn btn-outline-secondary btn-sm" title="Reset Pencarian">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </a>
+                        <?php endif; ?>
+                    </form>
+                </div>
+
+                <!-- Dropdown Filter Kelas (JavaScript Real-time) -->
+                <div class="col-md-3">
+                    <div class="input-group input-group-sm">
+                        <label class="input-group-text bg-success text-white fw-semibold" for="filter-kelas">
+                            <i class="fa-solid fa-filter me-1"></i> Kelas
+                        </label>
+                        <select id="filter-kelas" class="form-select form-select-sm">
+                            <option value="">Semua Kelas</option>
+                            <option value="X">Kelas X</option>
+                            <option value="XI">Kelas XI</option>
+                            <option value="XII">Kelas XII</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="card-body p-3">
             <div class="table-responsive">
-                <table class="table table-bordered table-hover align-middle text-center small">
+                <table class="table table-bordered table-hover align-middle text-center small" id="tabel-siswa">
                     <thead class="table-light">
                         <tr>
                             <th class="py-2.5" style="width: 4%;">No</th>
@@ -86,7 +128,8 @@ try {
                                 <?php 
                                     $id_key = isset($siswa['nis']) ? $siswa['nis'] : '';
                                 ?>
-                                <tr>
+                                <!-- Tambahkan atribut data-kelas agar bisa dibaca oleh JavaScript -->
+                                <tr data-kelas="<?= htmlspecialchars($siswa['kelas'] ?? ''); ?>">
                                     <td class="fw-bold text-muted"><?= $no++; ?></td>
                                     <td><?= htmlspecialchars($siswa['nis'] ?? ''); ?></td>
                                     <td><?= htmlspecialchars($siswa['nisn'] ?? ''); ?></td>
@@ -118,7 +161,7 @@ try {
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="10" class="text-center py-4 text-muted">Belum ada data siswa di database.</td>
+                                <td colspan="10" class="text-center py-4 text-muted">Data siswa tidak ditemukan.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -177,6 +220,7 @@ try {
                                 <option value="AK">AK</option>
                                 <option value="OTKP">OTKP</option>
                                 <option value="DKV">DKV</option>
+                                <option value="Farmasi">Farmasi</option>
                             </select>
                         </div>
                         <div class="col-md-12">
@@ -199,3 +243,32 @@ try {
         </div>
     </div>
 </div>
+
+<!-- JavaScript untuk Filter Kelas Real-time -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterKelas = document.getElementById('filter-kelas');
+    const trSiswa = document.querySelectorAll('#tabel-siswa tbody tr');
+
+    if (filterKelas) {
+        filterKelas.addEventListener('change', function() {
+            const kelasPilih = this.value.toLowerCase();
+            let adaData = false;
+
+            trSiswa.forEach(tr => {
+                // Abaikan baris kosong ("Data siswa tidak ditemukan.")
+                if (tr.cells.length === 1) return;
+
+                const kelasSiswa = (tr.getAttribute('data-kelas') || '').toLowerCase();
+
+                if (kelasPilih === "" || kelasSiswa === kelasPilih) {
+                    tr.style.display = "";
+                    adaData = true;
+                } else {
+                    tr.style.display = "none";
+                }
+            });
+        });
+    }
+});
+</script>

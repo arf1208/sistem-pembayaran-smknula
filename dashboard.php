@@ -43,7 +43,7 @@ include 'includes/header.php';
                 $page = filter_input(INPUT_GET, 'page', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'dashboard';
                 
                 // Proteksi jalur file (Mencegah Directory Traversal)
-                $allowed_pages = ['dashboard', 'kasir', 'siswa', 'riwayat', 'pengaturan', 'edit_siswa', 'hapus_siswa'];
+                $allowed_pages = ['dashboard', 'kasir', 'siswa', 'riwayat', 'pengaturan', 'edit_siswa', 'hapus_siswa', 'laporan_lunas'];
                 
                 if (in_array($page, $allowed_pages)) {
                     $file_path = "pages/" . $page . "_content.php";

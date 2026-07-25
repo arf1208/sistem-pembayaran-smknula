@@ -9,6 +9,60 @@ document.addEventListener('DOMContentLoaded', function () {
     const grandTotalElement = document.getElementById('grand-total');
     const btnSimpan = document.getElementById('btn-simpan');
 
+    const selectStatusBayar = document.getElementById('form-status-bayar');
+    const wrapperCatatan = document.getElementById('wrapper-catatan');
+    const inputCatatan = document.getElementById('form-catatan');
+
+    // Inisialisasi Select2 pada dropdown jenis tagihan agar ada kolom pencarian & tetap bisa di-scroll
+    if (window.jQuery && $(formJenis).length) {
+        $(formJenis).select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: '-- Pilih Pembayaran --',
+            allowClear: true
+        });
+
+        // Hubungkan event change Select2 dengan logika aplikasi
+        $(formJenis).on('change', function () {
+            prosesPerubahanJenis($(this).val());
+        });
+    }
+
+    // 1. Logika Jika Status Pembayaran di Bawah Diubah Manual
+    if (selectStatusBayar) {
+        selectStatusBayar.addEventListener('change', function() {
+            if (this.value === 'Cicil') {
+                wrapperCatatan.classList.remove('d-none');
+                inputCatatan.setAttribute('required', 'required');
+
+                const selectedOption = formJenis.options[formJenis.selectedIndex];
+                const tipe = selectedOption ? selectedOption.getAttribute('data-tipe') : '';
+                const sisa = selectedOption ? (parseFloat(selectedOption.getAttribute('data-sisa')) || 0) : 0;
+
+                if (tipe === 'cicil' && sisa > 0) {
+                    formNominal.value = sisa;
+                } else {
+                    formNominal.value = '';
+                }
+                formNominal.placeholder = 'Ketik nominal cicilan di sini...';
+                formNominal.removeAttribute('readonly');
+                formNominal.classList.remove('bg-light');
+            } else {
+                wrapperCatatan.classList.add('d-none');
+                inputCatatan.removeAttribute('required');
+                inputCatatan.value = '';
+
+                const selectedOption = formJenis.options[formJenis.selectedIndex];
+                const nominal = selectedOption ? (parseFloat(selectedOption.getAttribute('data-nominal')) || 0) : 0;
+                formNominal.value = nominal > 0 ? nominal : '';
+                formNominal.placeholder = '';
+                formNominal.setAttribute('readonly', 'readonly');
+                formNominal.classList.add('bg-light');
+            }
+            hitungTotal();
+        });
+    }
+
     // Pencarian Siswa
     function cariSiswa() {
         const keyword = inputNis.value.trim();
@@ -26,19 +80,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('search-loader').classList.add('d-none');
                 
                 if (res.status === 'success') {
-                    // Update Panel Biodata (ID disesuaikan dengan HTML Anda)
                     document.getElementById('biodata-siswa').classList.remove('d-none');
-                    
-                    // PERBAIKAN: Menggunakan ID 'view-nama' sesuai HTML Anda
                     document.getElementById('view-nama').innerText = res.data.nama_lengkap;
                     document.getElementById('view-kelas-jurusan').innerText = `${res.data.kelas} | ${res.data.jurusan}`;
                     
                     const fotoUrl = res.data.foto && res.data.foto !== 'default.png' ? `uploads/${res.data.foto}` : 'https://placehold.co/150x150/1f7a3e/ffffff?text=FOTO';
                     document.getElementById('view-foto').src = fotoUrl;
-                    
                     formNis.value = res.data.nis;
 
-                    // Update Riwayat Transaksi
+                    // Riwayat Transaksi
                     const listRiwayat = document.getElementById('list-riwayat');
                     listRiwayat.innerHTML = '';
                     if (!res.data.riwayat || res.data.riwayat.length === 0) {
@@ -54,14 +104,73 @@ document.addEventListener('DOMContentLoaded', function () {
                         });
                     }
 
-                    // Isi Dropdown Jenis Pembayaran
-                    formJenis.innerHTML = '<option value="">-- Pilih Pembayaran --</option>';
-                    res.jenis_pembayaran.forEach(item => {
-                        formJenis.innerHTML += `<option value="${item.id_jenis}" data-nominal="${item.nominal}">${item.nama_pembayaran} (Rp ${parseFloat(item.nominal).toLocaleString('id-ID')})</option>`;
-                    });
-                    
-                    formJenis.disabled = false;
-                    btnSimpan.disabled = false;
+                    // Isi Dropdown Jenis Pembayaran (Handle Select2 dengan benar)
+                    if (window.jQuery && $(formJenis).data('select2')) {
+                        $(formJenis).empty().trigger('change');
+                    } else {
+                        formJenis.innerHTML = '';
+                    }
+
+                    if (!res.jenis_pembayaran || res.jenis_pembayaran.length === 0) {
+                        if (window.jQuery && $(formJenis).data('select2')) {
+                            const newOption = new Option('-- Semua Pembayaran Sudah Lunas --', '', false, false);
+                            $(formJenis).append(newOption).trigger('change');
+                        } else {
+                            formJenis.innerHTML = '<option value="">-- Semua Pembayaran Sudah Lunas --</option>';
+                        }
+                        formJenis.disabled = true;
+                        btnSimpan.disabled = true;
+                        formNominal.value = '';
+                        hitungTotal();
+                        Swal.fire('Informasi', 'Siswa ini sudah melunasi semua jenis pembayaran!', 'success');
+                    } else {
+                        if (window.jQuery && $(formJenis).data('select2')) {
+                            $(formJenis).append(new Option('-- Pilih Pembayaran --', '', false, false));
+                        } else {
+                            formJenis.innerHTML = '<option value="">-- Pilih Pembayaran --</option>';
+                        }
+
+                        res.jenis_pembayaran.forEach(item => {
+                            const nominal = parseFloat(item.nominal) || 0;
+                            const sisaTagihan = item.sisa_tagihan !== undefined ? parseFloat(item.sisa_tagihan) : nominal;
+                            
+                            // Option Lunas
+                            const labelLunas = `${item.nama_pembayaran} (Rp ${nominal.toLocaleString('id-ID')}) - Lunas`;
+                            if (window.jQuery && $(formJenis).data('select2')) {
+                                let opt1 = new Option(labelLunas, item.id_jenis, false, false);
+                                $(opt1).attr('data-nominal', nominal);
+                                $(opt1).attr('data-sisa', sisaTagihan);
+                                $(opt1).attr('data-tipe', 'lunas');
+                                $(formJenis).append(opt1);
+                            } else {
+                                formJenis.innerHTML += `<option value="${item.id_jenis}" data-nominal="${nominal}" data-sisa="${sisaTagihan}" data-tipe="lunas">${labelLunas}</option>`;
+                            }
+                            
+                            // Option Cicil
+                            let labelCicil = `${item.nama_pembayaran} - Nyicil / Sebagian`;
+                            if (sisaTagihan < nominal) {
+                                labelCicil = `${item.nama_pembayaran} (Sisa: Rp ${sisaTagihan.toLocaleString('id-ID')}) - Nyicil`;
+                            }
+                            
+                            if (window.jQuery && $(formJenis).data('select2')) {
+                                let opt2 = new Option(labelCicil, item.id_jenis, false, false);
+                                $(opt2).attr('data-nominal', nominal);
+                                $(opt2).attr('data-sisa', sisaTagihan);
+                                $(opt2).attr('data-tipe', 'cicil');
+                                $(formJenis).append(opt2);
+                            } else {
+                                formJenis.innerHTML += `<option value="${item.id_jenis}" data-nominal="${nominal}" data-sisa="${sisaTagihan}" data-tipe="cicil">${labelCicil}</option>`;
+                            }
+                        });
+
+                        formJenis.disabled = false;
+                        btnSimpan.disabled = false;
+                    }
+
+                    // Refresh tampilan Select2 setelah isi option diperbarui
+                    if (window.jQuery && $(formJenis).length) {
+                        $(formJenis).trigger('change.select2');
+                    }
                 } else {
                     Swal.fire('Error', res.message, 'error');
                 }
@@ -73,7 +182,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // Event Listener Pencarian
     if (btnCari) btnCari.addEventListener('click', cariSiswa);
     if (inputNis) {
         inputNis.addEventListener('keypress', function(e) {
@@ -81,7 +189,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Kalkulasi Total Instan
     function hitungTotal() {
         const nominal = parseFloat(formNominal.value.replace(/[^0-9]/g, '')) || 0;
         const diskon = parseFloat(formDiskon.value) || 0;
@@ -90,15 +197,51 @@ document.addEventListener('DOMContentLoaded', function () {
         grandTotalElement.innerText = `Rp ${total.toLocaleString('id-ID')}`;
     }
 
-    if (formJenis) {
-        formJenis.addEventListener('change', function () {
-            const selectedOption = this.options[this.selectedIndex];
-            const nominal = selectedOption.getAttribute('data-nominal') || 0;
-            formNominal.value = parseFloat(nominal).toLocaleString('id-ID');
+    // 2. Logika Pemrosesan Perubahan Jenis Pembayaran
+    function prosesPerubahanJenis(idJenis) {
+        const selectedOption = formJenis.options[formJenis.selectedIndex];
+        if (!selectedOption || !selectedOption.value) {
+            formNominal.value = '';
             hitungTotal();
+            return;
+        }
+
+        const nominal = parseFloat(selectedOption.getAttribute('data-nominal')) || 0;
+        const sisa = parseFloat(selectedOption.getAttribute('data-sisa')) || nominal;
+        const tipe = selectedOption.getAttribute('data-tipe');
+
+        if (tipe === 'cicil') {
+            if (selectStatusBayar) selectStatusBayar.value = 'Cicil';
+            wrapperCatatan.classList.remove('d-none');
+            inputCatatan.setAttribute('required', 'required');
+
+            formNominal.value = sisa > 0 ? sisa : '';
+            formNominal.placeholder = 'Ketik nominal cicilan...';
+            formNominal.removeAttribute('readonly');
+            formNominal.classList.remove('bg-light');
+        } else {
+            if (selectStatusBayar) selectStatusBayar.value = 'Lunas';
+            wrapperCatatan.classList.add('d-none');
+            inputCatatan.removeAttribute('required');
+            inputCatatan.value = '';
+
+            formNominal.value = nominal > 0 ? nominal : '';
+            formNominal.placeholder = '';
+            formNominal.setAttribute('readonly', 'readonly');
+            formNominal.classList.add('bg-light');
+        }
+        
+        hitungTotal();
+    }
+
+    // Fallback jika event change biasa terpanggil
+    if (formJenis && !window.jQuery) {
+        formJenis.addEventListener('change', function () {
+            prosesPerubahanJenis(this.value);
         });
     }
 
+    if (formNominal) formNominal.addEventListener('input', hitungTotal);
     if (formDiskon) formDiskon.addEventListener('input', hitungTotal);
     if (formDenda) formDenda.addEventListener('input', hitungTotal);
 

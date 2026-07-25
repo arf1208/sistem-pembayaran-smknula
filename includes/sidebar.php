@@ -55,7 +55,7 @@ $currentPage = $_GET['page'] ?? 'dashboard';
     <div class="mt-auto">
         <!-- TOMBOL TOGGLE DI DALAM SIDEBAR -->
         <button type="button" class="btn btn-outline-light w-100 mb-2 py-2 fw-semibold d-flex align-items-center justify-content-center" id="sidebarToggle" title="Buka/Tutup Sidebar">
-            <i class="fa-solid fa-bars me-2 toggle-icon"></i> <span class="sidebar-text">Buka Menu</span>
+            <i class="fa-solid fa-bars me-2 toggle-icon"></i> <span class="toggle-text">Buka Menu</span>
         </button>
 
         <!-- Tombol Logout -->
@@ -71,7 +71,8 @@ $currentPage = $_GET['page'] ?? 'dashboard';
         width: 80px !important;
     }
     .sidebar.collapsed .sidebar-text,
-    .sidebar.collapsed .sidebar-text-content {
+    .sidebar.collapsed .sidebar-text-content,
+    .sidebar.collapsed .toggle-text {
         display: none !important;
     }
     .sidebar.collapsed .nav-link,
@@ -93,14 +94,14 @@ $currentPage = $_GET['page'] ?? 'dashboard';
 </style>
 
 <script>
-    // Bungkus dengan DOMContentLoaded agar script aman dieksekusi setelah halaman siap
     document.addEventListener("DOMContentLoaded", function () {
         const sidebarToggle = document.getElementById('sidebarToggle');
         const sidebar = document.getElementById('sidebar');
 
         if (sidebarToggle && sidebar) {
-            // Set teks awal tombol menyesuaikan kondisi default sidebar (collapsed)
-            const textSpan = sidebarToggle.querySelector('.sidebar-text');
+            const textSpan = sidebarToggle.querySelector('.toggle-text');
+            
+            // Set kondisi awal
             if (sidebar.classList.contains('collapsed')) {
                 if (textSpan) textSpan.textContent = "Buka Menu";
                 sidebarToggle.title = "Buka Sidebar";

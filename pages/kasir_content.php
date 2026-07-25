@@ -59,8 +59,8 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold small text-muted">Nominal Utama (Rp)</label>
-                        <input type="text" class="form-control bg-light" id="form-nominal" name="nominal_bayar" readonly>
+                        <label class="form-label fw-bold small text-muted">Nominal Bayar / Cicilan (Rp)</label>
+                        <input type="number" class="form-control" id="form-nominal" name="nominal_bayar" placeholder="Masukkan jumlah bayar..." required>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold small text-muted">Metode Pembayaran</label>
@@ -83,8 +83,23 @@
                     </div>
                 </div>
 
+                <!-- STATUS PEMBAYARAN (LUNAS / CICIL) -->
                 <div class="mb-3">
-                    <label class="form-label fw-bold small text-muted">Keterangan / Catatan</label>
+                    <label class="form-label fw-bold small text-muted">Status Pembayaran <span class="text-danger">*</span></label>
+                    <select class="form-select" id="form-status-bayar" name="status_bayar" required>
+                        <option value="Lunas">Lunas</option>
+                        <option value="Cicil">Cicil (Sebagian)</option>
+                    </select>
+                </div>
+
+                <!-- KET/CATATAN KHUSUS CICILAN -->
+                <div class="mb-3 d-none" id="wrapper-catatan">
+                    <label class="form-label fw-bold small text-danger">Catatan Cicilan <span class="text-danger">*</span></label>
+                    <textarea class="form-control border-danger" id="form-catatan" name="catatan" rows="2" placeholder="Contoh: Baru dibayar setengahnya, sisa tagihan..."></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-muted">Keterangan / Catatan Umum</label>
                     <textarea class="form-control" name="keterangan" rows="2" placeholder="Catatan transaksi (opsional)..."></textarea>
                 </div>
 

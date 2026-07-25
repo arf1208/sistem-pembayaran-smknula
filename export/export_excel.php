@@ -9,22 +9,33 @@ if (!isset($_SESSION['id_petugas'])) {
     exit();
 }
 
+// Menangkap parameter filter kelas dari URL
+$filter_kelas = isset($_GET['kelas']) ? $_GET['kelas'] : '';
+
 // Set header agar browser langsung mendownload file ini sebagai Excel (.xls)
 header("Content-type: application/vnd-ms-excel");
-header("Content-Disposition: attachment; filename=Laporan_Pembayaran_SMKNU_" . date('Y-m-d') . ".xls");
+header("Content-Disposition: attachment; filename=Laporan_Pembayaran_SMKNU_" . ($filter_kelas ? "Kelas_" . $filter_kelas . "_" : "Semua_Kelas_") . date('Y-m-d') . ".xls");
 header("Pragma: no-cache");
 header("Expires: 0");
 
 try {
-    // Ambil data riwayat transaksi pembayaran lengkap
+    // Ambil data riwayat transaksi pembayaran lengkap dengan kondisi filter kelas jika ada
     $query = "SELECT t.*, s.nama AS nama_siswa, s.kelas, j.nama_pembayaran, p.nama_lengkap AS nama_petugas 
               FROM transaksi t
               JOIN siswa s ON t.nis = s.nis
               JOIN jenis_pembayaran j ON t.id_jenis = j.id_jenis
-              JOIN petugas p ON t.id_petugas = p.id_petugas
-              ORDER BY t.tanggal_bayar DESC";
+              JOIN petugas p ON t.id_petugas = p.id_petugas";
+
+    if ($filter_kelas != '') {
+        $query .= " WHERE s.kelas = ?";
+        $query .= " ORDER BY t.tanggal_bayar DESC";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$filter_kelas]);
+    } else {
+        $query .= " ORDER BY t.tanggal_bayar DESC";
+        $stmt = $pdo->query($query);
+    }
               
-    $stmt = $pdo->query($query);
     $riwayat_pembayaran = $stmt->fetchAll();
 } catch (PDOException $e) {
     die("Gagal mengambil data untuk export: " . $e->getMessage());
@@ -80,7 +91,10 @@ try {
     <div class="title-box">
         <div class="title-main">LAPORAN TRANSAKSI PEMBAYARAN SISWA</div>
         <div class="title-main">SMK NU LAMONGAN</div>
-        <div class="title-sub">Waktu Unduh: <?= date('d-m-Y H:i'); ?> WIB</div>
+        <?php if ($filter_kelas != ''): ?>
+            <div class="title-main" style="font-size: 13pt; margin-top: 5px;">KELAS: <?= htmlspecialchars($filter_kelas); ?></div>
+        <?php endif; ?>
+        <div class="title-sub" style="margin-top: 5px;">Waktu Unduh: <?= date('d-m-Y H:i'); ?> WIB</div>
     </div>
     <br>
 
@@ -128,7 +142,7 @@ try {
             <?php else: ?>
                 <tr>
                     <td colspan="12" class="text-center" style="padding: 20px; font-style: italic; color: #888888;">
-                        Belum ada data transaksi pembayaran yang tercatat.
+                        Belum ada data transaksi pembayaran yang tercatat<?= $filter_kelas != '' ? ' untuk kelas ' . htmlspecialchars($filter_kelas) : ''; ?>.
                     </td>
                 </tr>
             <?php endif; ?>

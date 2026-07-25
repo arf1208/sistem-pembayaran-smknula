@@ -9,16 +9,27 @@ if (!isset($_SESSION['id_petugas'])) {
     exit();
 }
 
+// Menangkap parameter filter kelas dari URL
+$filter_kelas = isset($_GET['kelas']) ? $_GET['kelas'] : '';
+
 try {
-    // Ambil data riwayat transaksi pembayaran lengkap
+    // Ambil data riwayat transaksi pembayaran lengkap dengan kondisi filter kelas jika ada
     $query = "SELECT t.*, s.nama AS nama_siswa, s.kelas, j.nama_pembayaran, p.nama_lengkap AS nama_petugas 
               FROM transaksi t
               JOIN siswa s ON t.nis = s.nis
               JOIN jenis_pembayaran j ON t.id_jenis = j.id_jenis
-              JOIN petugas p ON t.id_petugas = p.id_petugas
-              ORDER BY t.tanggal_bayar DESC";
+              JOIN petugas p ON t.id_petugas = p.id_petugas";
+
+    if ($filter_kelas != '') {
+        $query .= " WHERE s.kelas = ?";
+        $query .= " ORDER BY t.tanggal_bayar DESC";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$filter_kelas]);
+    } else {
+        $query .= " ORDER BY t.tanggal_bayar DESC";
+        $stmt = $pdo->query($query);
+    }
               
-    $stmt = $pdo->query($query);
     $riwayat_pembayaran = $stmt->fetchAll();
 } catch (PDOException $e) {
     die("Gagal mengambil data untuk export: " . $e->getMessage());
@@ -29,7 +40,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan_Pembayaran_SMKNU_<?= date('Y-m-d'); ?></title>
+    <title>Laporan_Pembayaran_SMKNU_<?= $filter_kelas ? "Kelas_" . $filter_kelas . "_" : ""; ?><?= date('Y-m-d'); ?></title>
     <style>
         body {
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -159,6 +170,9 @@ try {
     <!-- Info Dokumen -->
     <div class="meta-info">
         <strong>Laporan:</strong> Riwayat Transaksi Pembayaran Siswa<br>
+        <?php if ($filter_kelas != ''): ?>
+            <strong>Kelas:</strong> <?= htmlspecialchars($filter_kelas); ?><br>
+        <?php endif; ?>
         <strong>Tanggal Cetak:</strong> <?= date('d-m-Y H:i'); ?> WIB<br>
         <strong>Status Data:</strong> Terverifikasi Sistem
     </div>
@@ -205,7 +219,7 @@ try {
             <?php else: ?>
                 <tr>
                     <td colspan="10" class="text-center" style="padding: 20px; font-style: italic; color: #888;">
-                        Belum ada data transaksi pembayaran yang tercatat.
+                        Belum ada data transaksi pembayaran yang tercatat<?= $filter_kelas != '' ? ' untuk kelas ' . htmlspecialchars($filter_kelas) : ''; ?>.
                     </td>
                 </tr>
             <?php endif; ?>

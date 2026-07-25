@@ -25,12 +25,18 @@ try {
         $stmt_tx->execute([$siswa['nis']]);
         $riwayat = $stmt_tx->fetchAll(PDO::FETCH_ASSOC);
 
-        // 3. Ambil jenis pembayaran dengan logika LIKE agar lebih toleran terhadap format tahun
-        // Menggunakan trim() dan wildcard % untuk memastikan data ditemukan
-        $stmt_jp = $pdo->prepare("SELECT id_jenis, nama_pembayaran, nominal 
-                                  FROM jenis_pembayaran 
-                                  WHERE tahun_ajaran LIKE ?");
-        $stmt_jp->execute(['%' . trim($siswa['tahun_ajaran']) . '%']);
+        // 3. Ambil jenis pembayaran dan hitung sisa tagihan jika ada cicilan sebelumnya, 
+        // serta kecualikan yang sudah berstatus Lunas sepenuhnya.
+        $stmt_jp = $pdo->prepare("
+            SELECT jp.id_jenis, jp.nama_pembayaran, jp.nominal, 
+                   (jp.nominal - COALESCE(SUM(t.total_akhir), 0)) AS sisa_tagihan
+            FROM jenis_pembayaran jp
+            LEFT JOIN transaksi t ON jp.id_jenis = t.id_jenis AND t.nis = ?
+            WHERE jp.tahun_ajaran LIKE ?
+            GROUP BY jp.id_jenis, jp.nama_pembayaran, jp.nominal
+            HAVING sisa_tagihan > 0
+        ");
+        $stmt_jp->execute([$siswa['nis'], '%' . trim($siswa['tahun_ajaran']) . '%']);
         $jenis_pembayaran = $stmt_jp->fetchAll(PDO::FETCH_ASSOC);
 
         echo json_encode([
